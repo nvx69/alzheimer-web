@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Alzheimer Risk Assessment</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans Thai",sans-serif;background:#f5f7fb;color:#243044}
+header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:34px 20px 48px;text-align:center}
+header .icon{font-size:58px}h1{margin:8px 0;font-size:34px}.sub{font-size:17px;opacity:.93}
+.wrap{max-width:1100px;margin:30px auto;padding:0 18px}
+.card{background:#fff;border-radius:22px;padding:28px;margin-bottom:22px;box-shadow:0 8px 28px #17255412}
+h2{margin-top:0;color:#4f46e5}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+label{font-weight:700;display:block;margin-bottom:7px}
+input,select{width:100%;padding:13px;border:1px solid #d8deea;border-radius:11px;font-size:16px;background:#fff}
+button{width:100%;border:0;border-radius:13px;padding:15px;margin-top:20px;background:#4f46e5;color:#fff;font-size:17px;font-weight:bold;cursor:pointer}
+button:hover{background:#4338ca}
+.result{display:none;text-align:center}.score{font-size:58px;font-weight:800;margin:10px}.low{color:#16a34a}.mid{color:#ea580c}.high{color:#dc2626}
+.advice{background:#f8fafc;padding:18px;border-radius:14px;margin-top:15px}
+.notice{background:#fff7ed;border-left:5px solid #f97316;padding:15px;border-radius:10px;margin-top:18px;text-align:left}
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feature{padding:22px;background:#f8fafc;border-radius:16px;cursor:pointer;transition:.2s;border:1px solid transparent}
+.feature:hover{transform:translateY(-3px);box-shadow:0 8px 20px #17255418;border-color:#c7d2fe;background:#eef2ff}
+.feature b{display:block;margin-bottom:8px;font-size:18px}
+.feature small{color:#4f46e5;display:block;margin-top:12px;font-weight:bold}
+footer{text-align:center;padding:30px;color:#718096}
+.hidden{display:none}
+.userbar{background:#fff;color:#334155;border-radius:16px;padding:12px 16px;max-width:1100px;margin:18px auto 0;text-align:left}
+.userbar button{float:right;width:auto;margin:0;padding:8px 15px;font-size:14px}
+.locked{background:#f8fafc;border:1px dashed #a5b4fc;text-align:center;padding:30px;border-radius:18px}
+.locked .lock{font-size:45px}.locked button{max-width:330px}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;align-items:center;justify-content:center;padding:20px}
+.modalbox{background:#fff;width:min(460px,100%);max-height:90vh;overflow:auto;border-radius:22px;padding:30px;position:relative}
+.close{position:absolute;right:14px;top:10px;background:transparent;color:#64748b;width:auto;margin:0;padding:4px;font-size:26px}
+.switch{text-align:center;margin-top:14px;color:#4f46e5;cursor:pointer}
+.msg{margin-top:12px;padding:11px;border-radius:10px;background:#f1f5f9;display:none}
+.info-title{font-size:25px;color:#4f46e5;margin-bottom:12px}
+.info-list{text-align:left;line-height:1.8}
+.patient-history-box{margin:20px 0;padding:18px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:16px}
+.patient-history-head{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.history-owner{font-size:13px;color:#64748b;margin-top:4px}
+.history-btn{width:auto;margin:0;padding:10px 15px;font-size:14px;background:#4f46e5}
+.history-preview{margin-top:12px;color:#475569;font-size:14px}
+.history-item{background:#f8fafc;border-radius:12px;padding:13px;margin:9px 0;text-align:left;border-left:4px solid #6366f1}
+.history-item b{color:#334155}
+.history-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;font-size:14px}
+.empty-history{text-align:center;padding:15px;color:#64748b;background:#f8fafc;border-radius:12px}
+#appSection{display:none}
+@media(max-width:750px){.grid,.features{grid-template-columns:1fr}h1{font-size:27px}.userbar button{float:none;margin-left:10px}}
+</style>
+</head>
+<body>
+
+<header>
+<div class="icon">🧠</div>
+<h1>AI Alzheimer Risk Assessment</h1>
+<div class="sub">ระบบ AI ประเมินความเสี่ยงโรคอัลไซเมอร์เบื้องต้นสำหรับผู้สูงอายุ</div>
+</header>
+
+<div class="wrap">
+
+<!-- Public information -->
+<div class="card">
+<h2>💡 เกี่ยวกับระบบ</h2>
+<p>เว็บไซต์ต้นแบบสำหรับประเมินความเสี่ยงอัลไซเมอร์เบื้องต้น โดยใช้ข้อมูลสุขภาพและพฤติกรรมของผู้ใช้งาน</p>
+<div id="patientHistoryBox" class="patient-history-box hidden">
+<div class="patient-history-head">
+<div><b>🧑‍⚕️ ประวัติสุขภาพของผู้ใช้งาน</b><div id="patientHistoryOwner" class="history-owner"></div></div>
+<button class="history-btn" onclick="showPatientHistory()">📋 ดูประวัติของฉัน</button>
+</div>
+<div id="patientHistoryPreview" class="history-preview"></div>
+</div>
+
+<div class="features">
+<div class="feature" onclick="showInfo('ai')"><b>🧠 AI Assessment</b>ระบบประเมินความเสี่ยงจากข้อมูลสุขภาพและพฤติกรรม<small>กดเพื่ออ่านข้อมูล →</small></div>
+<div class="feature" onclick="showInfo('risk')"><b>📊 Risk Level</b>ผลการประเมินแบ่งเป็น 3 ระดับ เพื่อให้อ่านและทำความเข้าใจง่าย<small>กดเพื่ออ่านข้อมูล →</small></div>
+<div class="feature" onclick="showInfo('web')"><b>🌐 Web Application</b>ใช้งานผ่านเว็บไซต์ได้ทั้งคอมพิวเตอร์และโทรศัพท์<small>กดเพื่ออ่านข้อมูล →</small></div>
+</div>
+</div>
+
+
+<!-- Alzheimer knowledge -->
+<div class="card">
+<h2>📚 ความรู้เบื้องต้นเกี่ยวกับอัลไซเมอร์</h2>
+<p>อัลไซเมอร์เป็นโรคที่ทำให้ความจำและความสามารถในการคิดค่อย ๆ ลดลง โดยมักพบในผู้สูงอายุ</p>
+<div class="features">
+<div class="feature" style="cursor:default">
+<b>🧠 อาการ</b>
+<ul class="info-list">
+<li>ลืมเรื่องที่เพิ่งเกิดขึ้นบ่อย</li>
+<li>ถามหรือพูดเรื่องเดิมซ้ำ ๆ</li>
+<li>สับสนเรื่องเวลา สถานที่ หรือคน</li>
+<li>ทำงานที่คุ้นเคยได้ยากขึ้น</li>
+</ul>
+</div>
+<div class="feature" style="cursor:default">
+<b>🔎 สาเหตุและปัจจัยเสี่ยง</b>
+<ul class="info-list">
+<li>เกิดจากความผิดปกติของเซลล์สมองที่ค่อย ๆ สะสม</li>
+<li>อายุที่มากขึ้นเป็นปัจจัยเสี่ยงสำคัญ</li>
+<li>ประวัติครอบครัวและพันธุกรรมบางชนิดอาจเพิ่มความเสี่ยง</li>
+<li>ความดัน เบาหวาน ไขมันสูง และการไม่ค่อยออกกำลังกายก็เกี่ยวข้องกับความเสี่ยง</li>
+</ul>
+</div>
+<div class="feature" style="cursor:default">
+<b>🛡️ วิธีป้องกันและลดความเสี่ยง</b>
+<ul class="info-list">
+<li>ออกกำลังกายเป็นประจำ</li>
+<li>นอนหลับให้เพียงพอและดูแลความเครียด</li>
+<li>ควบคุมความดัน เบาหวาน และคอเลสเตอรอล</li>
+<li>ฝึกสมองและทำกิจกรรมร่วมกับผู้อื่น</li>
+<li>ไม่สูบบุหรี่และหลีกเลี่ยงแอลกอฮอล์มากเกินไป</li>
+</ul>
+</div>
+</div>
+<div class="notice">💡 การดูแลสุขภาพช่วยลดปัจจัยเสี่ยงได้ แต่ไม่สามารถป้องกันอัลไซเมอร์ได้ทั้งหมด หากมีอาการความจำผิดปกติหรือแย่ลงต่อเนื่อง ควรพบแพทย์เพื่อประเมินเพิ่มเติม</div>
+</div>
+
+<!-- Login gate -->
+<div class="card" id="loginGate">
+<div class="locked">
+<div class="lock">🔐</div>
+<h2>เข้าสู่ระบบเพื่อใช้งานโปรแกรม</h2>
+<p>กรุณาเข้าสู่ระบบหรือสร้างบัญชีก่อนเริ่มการประเมินความเสี่ยง</p>
+<button onclick="openAuth('login')">🔐 เข้าสู่ระบบ</button>
+<button onclick="openAuth('register')" style="background:#7c3aed">👤 สร้างบัญชีใหม่</button>
+</div>
+</div>
+
+<!-- Actual program, hidden until login -->
+<div id="appSection">
+<div class="userbar" id="userbar"></div>
+
+<div class="card">
+<h2>📋 แบบประเมินข้อมูลสุขภาพ</h2>
+<div class="grid">
+<div><label>อายุ (ปี)</label><input id="age" type="number" min="55" max="100" value="65"></div>
+<div><label>BMI</label><input id="bmi" type="number" min="0" max="50" step="0.1" value="24.5"></div>
+<div><label>เพศ</label><select id="gender"><option value="male">เพศชาย</option><option value="female">เพศหญิง</option><option value="lgbtq">LGBTQ+</option></select></div>
+<div><label>ความดันโลหิต</label><select id="bp"><option value="0">ปกติ</option><option value="1">ต่ำ</option><option value="2">สูง</option></select></div>
+<div><label>โรคเบาหวาน</label><select id="diabetes"><option value="0">ไม่มี</option><option value="1">มี</option></select></div>
+<div><label>คอเลสเตอรอล</label><select id="chol"><option value="0">ปกติ</option><option value="1">ต่ำ</option><option value="2">สูง</option></select></div>
+<div><label>การออกกำลังกาย</label><select id="exercise"><option value="0">ปกติ</option><option value="1">น้อย</option><option value="2">มาก</option></select></div>
+<div><label>การสูบบุหรี่</label><select id="smoke"><option value="0">ไม่สูบ</option><option value="1">สูบ</option></select></div>
+<div><label>การนอนหลับ</label><select id="sleep"><option value="0">เพียงพอ</option><option value="1">ไม่เพียงพอ</option></select></div>
+<div><label>ประวัติครอบครัว</label><select id="family"><option value="0">ไม่มี</option><option value="1">มี</option></select></div>
+</div>
+<div style="margin-top:18px"><label>มีปัญหาด้านความจำหรือไม่</label><select id="memory"><option value="0">ไม่มี</option><option value="1">มี</option></select></div>
+<button onclick="assess()">🔍 ประเมินความเสี่ยง</button>
+</div>
+
+<div class="card result" id="result">
+<h2>📊 ผลการประเมิน</h2>
+<div id="score" class="score">0%</div>
+<h2 id="level"></h2>
+<div class="advice" id="advice"></div>
+<div class="notice">⚠️ ผลนี้เป็นการประเมินเบื้องต้นเพื่อการศึกษา ไม่ใช่การวินิจฉัยโรค หากมีความกังวลเรื่องความจำหรือสุขภาพ ควรปรึกษาแพทย์หรือบุคลากรทางการแพทย์</div>
+</div>
+</div>
+</div>
+
+<footer>AI Alzheimer Risk Assessment — Student Project Prototype</footer>
+
+<!-- Auth modal -->
+<div class="modal" id="authModal">
+<div class="modalbox">
+<button class="close" onclick="closeAuth()">×</button>
+
+<div id="loginForm">
+<h2>🔐 เข้าสู่ระบบ</h2>
+<label>ชื่อผู้ใช้</label><input id="loginUser" placeholder="กรอกชื่อผู้ใช้">
+<label style="margin-top:14px">รหัสผ่าน</label><input id="loginPass" type="password" placeholder="กรอกรหัสผ่าน">
+<button onclick="login()">เข้าสู่ระบบ</button>
+<div class="switch" onclick="switchAuth('register')">ยังไม่มีบัญชี? สร้างบัญชี</div>
+<div class="msg" id="loginMsg"></div>
+</div>
+
+<div id="registerForm" style="display:none">
+<h2>👤 สร้างบัญชี</h2>
+<label>ชื่อ-นามสกุล</label><input id="regName" placeholder="เช่น ธนากร พันธุมี">
+<label style="margin-top:14px">ชื่อผู้ใช้</label><input id="regUser" placeholder="ตั้งชื่อผู้ใช้">
+<label style="margin-top:14px">รหัสผ่าน</label><input id="regPass" type="password" placeholder="อย่างน้อย 4 ตัวอักษร">
+<button onclick="register()">สร้างบัญชี</button>
+<div class="switch" onclick="switchAuth('login')">มีบัญชีแล้ว? เข้าสู่ระบบ</div>
+<div class="msg" id="regMsg"></div>
+</div>
+</div>
+</div>
+
+<!-- Info modal -->
+<div class="modal" id="infoModal">
+<div class="modalbox">
+<button class="close" onclick="closeInfo()">×</button>
+<div id="infoContent"></div>
+</div>
+</div>
+
+<script>
+function n(id){return Number(document.getElementById(id).value)}
+function validateLimits(){
+const ageEl=document.getElementById("age"), bmiEl=document.getElementById("bmi");
+if(Number(ageEl.value)>100) ageEl.value=100;
+if(Number(bmiEl.value)>50) bmiEl.value=50;
+}
+document.getElementById("age").addEventListener("input",validateLimits);
+document.getElementById("bmi").addEventListener("input",validateLimits);
+
+function assess(){
+const age=n("age"),bmi=n("bmi");
+if(!Number.isFinite(age)||!Number.isFinite(bmi)||age<=0||bmi<=0){
+alert("กรุณากรอกอายุและ BMI ให้ถูกต้อง");
+return;
+}
+if(age>100){
+alert("อายุไม่สามารถเกิน 100 ปีได้");
+document.getElementById("age").focus();
+return;
+}
+if(bmi>50){
+alert("BMI ไม่สามารถเกิน 50 ได้");
+document.getElementById("bmi").focus();
+return;
+}
+let s=0;
+if(age>=80)s+=25;else if(age>=70)s+=18;else if(age>=60)s+=10;
+if(bmi>=30)s+=8;
+// ความดัน: ต่ำ +1, ปกติ 0, สูง +8
+// การออกกำลังกาย: น้อย +7, ปกติ 0, มาก -2 (เป็นปัจจัยส่งเสริมสุขภาพ)
+// คอเลสเตอรอล: ต่ำ 0, ปกติ 0, สูง +5
+s+=((n("bp")===1)?1:(n("bp")===2?8:0));
+s+=n("diabetes")*7;
+s+=((n("chol")===2)?5:0);
+s+=((n("exercise")===1)?7:(n("exercise")===2?-2:0));
+s+=n("smoke")*5+n("sleep")*5+n("family")*15+n("memory")*20;
+s=Math.min(100,Math.max(0,Math.round(s)));
+
+const currentUser=JSON.parse(localStorage.getItem("alzCurrentUser")||"null");
+if(currentUser){
+  const key="alzHealthHistory_"+currentUser.user;
+  const history=JSON.parse(localStorage.getItem(key)||"[]");
+  history.unshift({
+    date:new Date().toLocaleString("th-TH"),
+    age, bmi,
+    gender:document.getElementById("gender").value,
+    bp:document.getElementById("bp").selectedOptions[0].text,
+    diabetes:document.getElementById("diabetes").selectedOptions[0].text,
+    chol:document.getElementById("chol").selectedOptions[0].text,
+    exercise:document.getElementById("exercise").selectedOptions[0].text,
+    smoke:document.getElementById("smoke").selectedOptions[0].text,
+    sleep:document.getElementById("sleep").selectedOptions[0].text,
+    family:document.getElementById("family").selectedOptions[0].text,
+    memory:document.getElementById("memory").selectedOptions[0].text,
+    score:s
+  });
+  localStorage.setItem(key,JSON.stringify(history.slice(0,20)));
+  renderPatientHistory();
+}
+
+const r=document.getElementById("result"),sc=document.getElementById("score"),lv=document.getElementById("level"),ad=document.getElementById("advice");
+r.style.display="block";sc.textContent=s+"%";
+if(s<30){sc.className="score low";lv.textContent="🟢 ความเสี่ยงต่ำ";ad.textContent="ควรรักษาพฤติกรรมสุขภาพที่ดี ออกกำลังกายสม่ำเสมอ นอนให้เพียงพอ และทำกิจกรรมกระตุ้นสมอง"}
+else if(s<60){sc.className="score mid";lv.textContent="🟠 ความเสี่ยงปานกลาง";ad.textContent="ควรใส่ใจการออกกำลังกาย การนอน และควบคุมปัจจัยสุขภาพ เช่น ความดัน เบาหวาน และไขมัน"}
+else{sc.className="score high";lv.textContent="🔴 ความเสี่ยงสูง";ad.textContent="ควรปรึกษาแพทย์หรือบุคลากรทางการแพทย์เพื่อประเมินเพิ่มเติม โดยเฉพาะหากมีปัญหาด้านความจำ"}
+r.scrollIntoView({behavior:"smooth"})
+}
+
+function openAuth(type){document.getElementById("authModal").style.display="flex";switchAuth(type)}
+function closeAuth(){document.getElementById("authModal").style.display="none"}
+function switchAuth(type){
+document.getElementById("loginForm").style.display=type==="login"?"block":"none";
+document.getElementById("registerForm").style.display=type==="register"?"block":"none";
+}
+function register(){
+let name=document.getElementById("regName").value.trim(),user=document.getElementById("regUser").value.trim(),pass=document.getElementById("regPass").value,msg=document.getElementById("regMsg");
+msg.style.display="block";
+if(!name||!user||pass.length<4){msg.textContent="กรุณากรอกข้อมูลให้ครบ และรหัสผ่านอย่างน้อย 4 ตัวอักษร";return}
+let users=JSON.parse(localStorage.getItem("alzUsers")||"[]");
+if(users.some(u=>u.user===user)){msg.textContent="ชื่อผู้ใช้นี้มีอยู่แล้ว";return}
+users.push({name,user,pass});localStorage.setItem("alzUsers",JSON.stringify(users));
+msg.textContent="สร้างบัญชีสำเร็จ! กำลังไปหน้าเข้าสู่ระบบ...";
+setTimeout(()=>switchAuth("login"),700)
+}
+function login(){
+let user=document.getElementById("loginUser").value.trim(),pass=document.getElementById("loginPass").value,msg=document.getElementById("loginMsg");
+let users=JSON.parse(localStorage.getItem("alzUsers")||"[]"),found=users.find(u=>u.user===user&&u.pass===pass);
+msg.style.display="block";
+if(!found){msg.textContent="ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";return}
+localStorage.setItem("alzCurrentUser",JSON.stringify(found));closeAuth();showApp()
+}
+function logout(){
+localStorage.removeItem("alzCurrentUser");
+document.getElementById("appSection").style.display="none";
+document.getElementById("patientHistoryBox").classList.add("hidden");
+document.getElementById("loginGate").style.display="block";
+window.scrollTo({top:document.getElementById("loginGate").offsetTop-20,behavior:"smooth"})
+}
+function showApp(){
+let u=JSON.parse(localStorage.getItem("alzCurrentUser")||"null");if(!u)return;
+document.getElementById("loginGate").style.display="none";
+document.getElementById("appSection").style.display="block";
+document.getElementById("userbar").innerHTML="👋 สวัสดี <strong>"+u.name+"</strong> ("+u.user+") <button onclick='logout()'>🚪 ออกจากระบบ</button>";
+document.getElementById("patientHistoryBox").classList.remove("hidden");
+document.getElementById("patientHistoryOwner").textContent="แสดงเฉพาะข้อมูลของ "+u.name+" ("+u.user+")";
+renderPatientHistory();
+}
+
+function getPatientHistory(){
+const u=JSON.parse(localStorage.getItem("alzCurrentUser")||"null");
+if(!u)return [];
+return JSON.parse(localStorage.getItem("alzHealthHistory_"+u.user)||"[]");
+}
+
+function renderPatientHistory(){
+const history=getPatientHistory();
+const preview=document.getElementById("patientHistoryPreview");
+if(!preview)return;
+if(history.length===0){
+preview.innerHTML="<div class='empty-history'>ยังไม่มีประวัติสุขภาพของผู้ใช้งานรายนี้</div>";
+return;
+}
+const h=history[0];
+preview.innerHTML="<div class='history-item'><b>ข้อมูลล่าสุด</b> — "+h.date+
+"<div class='history-grid'><span>อายุ: "+h.age+" ปี</span><span>BMI: "+h.bmi+"</span>"+
+"<span>ความดัน: "+h.bp+"</span><span>เบาหวาน: "+h.diabetes+"</span></div></div>";
+}
+
+function showPatientHistory(){
+const u=JSON.parse(localStorage.getItem("alzCurrentUser")||"null");
+if(!u)return;
+const history=getPatientHistory();
+let html="<div class='info-title'>📋 ประวัติสุขภาพของ "+u.name+"</div>"+
+"<p style='color:#64748b'>ชื่อผู้ใช้: "+u.user+" — แสดงเฉพาะข้อมูลของบัญชีนี้</p>";
+if(history.length===0){
+html+="<div class='empty-history'>ยังไม่มีการประเมินสุขภาพ</div>";
+}else{
+history.forEach((h,i)=>{
+html+="<div class='history-item'><b>ครั้งที่ "+(i+1)+"</b> · "+h.date+
+"<div class='history-grid'>"+
+"<span>อายุ: "+h.age+" ปี</span><span>BMI: "+h.bmi+"</span>"+
+"<span>เพศ: "+h.gender+"</span><span>ผลความเสี่ยง: "+h.score+"%</span>"+
+"<span>ความดัน: "+h.bp+"</span><span>เบาหวาน: "+h.diabetes+"</span>"+
+"<span>คอเลสเตอรอล: "+h.chol+"</span><span>ออกกำลังกาย: "+h.exercise+"</span>"+
+"<span>สูบบุหรี่: "+h.smoke+"</span><span>การนอน: "+h.sleep+"</span>"+
+"<span>ประวัติครอบครัว: "+h.family+"</span><span>ปัญหาความจำ: "+h.memory+"</span>"+
+"</div></div>";
+});
+}
+document.getElementById("infoContent").innerHTML=html;
+document.getElementById("infoModal").style.display="flex";
+}
+function showInfo(type){
+let c=document.getElementById("infoContent");
+if(type==="ai")c.innerHTML="<div class='info-title'>🧠 AI Assessment</div><div class='info-list'><p>ระบบใช้ข้อมูลสุขภาพและพฤติกรรมของผู้ใช้งานเพื่อประเมินความเสี่ยงเบื้องต้น</p><ul><li>อายุ</li><li>BMI</li><li>เพศ</li><li>ความดันโลหิต (ต่ำ / ปกติ / สูง)</li><li>เบาหวานและคอเลสเตอรอล (ต่ำ / ปกติ / สูง)</li><li>การออกกำลังกาย (น้อย / ปกติ / มาก) และการนอน</li><li>ประวัติครอบครัว</li><li>ปัญหาด้านความจำ</li></ul></div>";
+if(type==="risk")c.innerHTML="<div class='info-title'>📊 Risk Level</div><div class='info-list'><p><b>🟢 ความเสี่ยงต่ำ</b> — ปัจจัยเสี่ยงโดยรวมอยู่ในระดับต่ำ</p><p><b>🟠 ความเสี่ยงปานกลาง</b> — ควรใส่ใจพฤติกรรมและสุขภาพมากขึ้น</p><p><b>🔴 ความเสี่ยงสูง</b> — ควรปรึกษาบุคลากรทางการแพทย์เพื่อประเมินเพิ่มเติม</p></div>";
+if(type==="web")c.innerHTML="<div class='info-title'>🌐 Web Application</div><div class='info-list'><p>เว็บไซต์ออกแบบให้ใช้งานได้ทั้งคอมพิวเตอร์และโทรศัพท์</p><ul><li>มีระบบสร้างบัญชีและเข้าสู่ระบบ</li><li>ต้องล็อกอินก่อนใช้งานแบบประเมิน</li><li>ส่วนข้อมูลด้านล่างเปิดอ่านได้โดยไม่ต้องล็อกอิน</li><li>รองรับการนำไป Deploy เป็นเว็บไซต์ออนไลน์</li></ul></div>";
+document.getElementById("infoModal").style.display="flex"
+}
+function closeInfo(){document.getElementById("infoModal").style.display="none"}
+if(localStorage.getItem("alzCurrentUser"))showApp();
+</script>
+</body>
+</html>
